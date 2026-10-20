@@ -10,6 +10,7 @@ const TRIAL_COUNT       = 10;   // ピンチ操作の回数
 const STROKES_PER_COUNT = 2;    // 何ストロークで1回か(2 = 広げる+近づける)
 const STROKE_MIN_PX     = 80;   // 1ストロークと数える最小の指の動き(px)。小さいほど敏感
 const SHOW_PROGRESS     = true; // 上部に「3 / 10 回」を表示するか
+const DEBUG             = true; // 診断用の表示(画面下)。本番では false にする
 
 // ===== 画面に出す文章(改行は \n) =====
 const TEXT_PINCH = CIRCLE_ON
@@ -68,6 +69,7 @@ let strokesThisTrial = 0;     // 今の1回の中で数えたストローク数
 let records = [];
 let t0 = null;
 let exportBtn, startBtn;
+let dbgSounding = false, dbgFreq = 0;
 
 const CSV_HEADER = [
   'participant', 'sound', 'freq_max', 'reversed', 'circle_on',
@@ -80,10 +82,6 @@ function setup() {
   createCanvas(windowWidth, windowHeight);
   circleMax = min(width, height) * 0.9;
   circleSize = min(width, height) * 0.3;
-
-  document.addEventListener('touchstart', initAudio, { passive: true });
-  document.addEventListener('touchend', initAudio, { passive: true });
-  document.addEventListener('mousedown', initAudio);
 
   // 開始ボタン(ここで音を許可する。iPhoneは指を離さないと音が出せないため)
   startBtn = createButton('タップして開始');
@@ -236,6 +234,11 @@ function initAudio() {
   if (audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
+  // iPhone対策:無音の短い音を一度鳴らして、音の再生を確実に許可させる
+  const unlock = audioCtx.createBufferSource();
+  unlock.buffer = audioCtx.createBuffer(1, 1, 22050);
+  unlock.connect(audioCtx.destination);
+  unlock.start(0);
 }
 
 function setPitch(freq) {
@@ -378,6 +381,7 @@ function draw() {
     const freq = FREQ_MIN + ratio * (FREQ_MAX - FREQ_MIN);
     const sounding = started && SOUND_ON && speed > MOVE_THRESHOLD;
 
+    dbgSounding = sounding; dbgFreq = freq;
     if (started && SOUND_ON) setPitch(freq);
     if (sounding) targetGain = LEVEL;
 
@@ -448,6 +452,18 @@ function draw() {
     textAlign(CENTER, TOP);
     fill(TEXT_COLOR);
     text(TEXT_DONE, width / 2, height * 0.12);
+  }
+
+  if (DEBUG) {
+    textStyle(NORMAL);
+    textSize(14);
+    textAlign(LEFT, BOTTOM);
+    fill(200, 0, 0);
+    text('audio:' + (audioCtx ? audioCtx.state : 'none') + ' started:' + started +
+         ' touches:' + touches.length + ' phase:' + phase +
+         '\nspeed:' + Math.round(speed) + ' sounding:' + dbgSounding +
+         ' freq:' + Math.round(dbgFreq) + ' gain:' + (gainNode ? gainNode.gain.value.toFixed(2) : '-'),
+         10, height - 10);
   }
 }
 
