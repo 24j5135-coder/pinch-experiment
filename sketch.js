@@ -1,6 +1,6 @@
 // ===== 実験条件(ここだけ書き換えて比較する) =====
 const SOUND_PARAM    = 'sine';  // 音の種類: 'none'(音なし) | 'sine' | 'soft' | 'air' | 'organ' | 'bell'
-const FREQ_MAX       = 600;      // ピッチの上限(Hz)
+const FREQ_MAX       = 400;      // ピッチの上限(Hz)
 const PITCH_REVERSED = false;    // false: 指を広げる→低い音 / true: 指を広げる→高い音
 const CIRCLE_ON      = true;     // 円: true=表示 / false=なし
 const PARTICIPANT_ID = 'test';   // 被験者ID(CSVのファイル名と各行に入る)
@@ -15,6 +15,7 @@ const SHOW_PROGRESS     = true; // 上部に「3 / 10 回」を表示するか
 const TEXT_PINCH = CIRCLE_ON
   ? '円を大きくしたり\n小さくしたりするように、\n2本指で広げて近づける動きを\n指を離さず続けてください。'
   : '2本指を無理のない範囲で\n大きく広げて、近づける動きを\n指を離さず続けてください。';
+const TEXT_READY = '下のボタンを押してから、\n2本指での操作を\n始めてください。';
 const TEXT_DONE = '操作は以上です。\nお疲れさまでした。\n下のボタンを押して、\nデータ(CSVファイル)を\n保存してください。';
 
 // ===== 以下の条件は固定(必要なときだけ変更) =====
@@ -49,7 +50,7 @@ let started = false;
 let circleSize, circleMax;
 
 // 進行状況
-let phase = 'pinch';          // 'pinch'(操作中) → 'done'(保存画面)
+let phase = 'ready';          // 'ready'(開始前) → 'pinch'(操作中) → 'done'(保存画面)
 let trialCount = 0;           // 数え終わった回数
 
 // 指の状態
@@ -66,7 +67,7 @@ let strokesThisTrial = 0;     // 今の1回の中で数えたストローク数
 // 記録
 let records = [];
 let t0 = null;
-let exportBtn;
+let exportBtn, startBtn;
 
 const CSV_HEADER = [
   'participant', 'sound', 'freq_max', 'reversed', 'circle_on',
@@ -83,6 +84,17 @@ function setup() {
   document.addEventListener('touchstart', initAudio, { passive: true });
   document.addEventListener('touchend', initAudio, { passive: true });
   document.addEventListener('mousedown', initAudio);
+
+  // 開始ボタン(ここで音を許可する。iPhoneは指を離さないと音が出せないため)
+  startBtn = createButton('タップして開始');
+  startBtn.size(240, 64);
+  startBtn.position(width / 2 - 120, height * 0.45);
+  startBtn.style('font-size', '20px');
+  startBtn.elt.addEventListener('click', () => {
+    initAudio();
+    phase = 'pinch';
+    startBtn.hide();
+  });
 
   // CSV保存ボタン(操作が終わるまで隠しておく)
   exportBtn = createButton('データ(CSV)を保存');
@@ -392,7 +404,15 @@ function draw() {
   const ts = constrain(width * 0.045, 16, 26);
   noStroke();
 
-  if (phase === 'pinch') {
+  if (phase === 'ready') {
+    textStyle(NORMAL);
+    textSize(ts);
+    textLeading(ts * 1.6);
+    textAlign(CENTER, TOP);
+    fill(TEXT_COLOR);
+    text(TEXT_READY, width / 2, height * 0.2);
+
+  } else if (phase === 'pinch') {
     // 視覚フィードバック：画面中央の水色の円(外枠なし)
     if (CIRCLE_ON) {
       fill(CIRCLE_COLOR[0], CIRCLE_COLOR[1], CIRCLE_COLOR[2]);
