@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>音テスト</title>
+</head>
+<body style="font-size:20px; padding:20px;">
+  <button id="b" style="font-size:24px; padding:16px;">音を鳴らす(1秒)</button>
+  <p id="s">状態:未開始</p>
+  <script>
+    const b = document.getElementById('b');
+    const s = document.getElementById('s');
+    b.addEventListener('click', async () => {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      await ctx.resume();
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      g.gain.value = 0.3;
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 1);
+      s.textContent = '状態:' + ctx.state + '(running なら再生中)';
+    });
+  </script>
+</body>
+</html>
