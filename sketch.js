@@ -10,7 +10,7 @@ const TRIAL_COUNT       = 10;   // ピンチ操作の回数
 const STROKES_PER_COUNT = 2;    // 何ストロークで1回か(2 = 広げる+近づける)
 const STROKE_MIN_PX     = 80;   // 1ストロークと数える最小の指の動き(px)。小さいほど敏感
 const SHOW_PROGRESS     = true; // 上部に「3 / 10 回」を表示するか
-const DEBUG             = true; // 診断用の表示(画面下)。本番では false にする
+const DEBUG             = false; // 診断用の表示(画面下)。本番では false にする
 
 // ===== 画面に出す文章(改行は \n) =====
 const TEXT_PINCH = CIRCLE_ON
