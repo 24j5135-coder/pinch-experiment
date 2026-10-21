@@ -2,7 +2,7 @@
 const SOUND_PARAM    = 'sine';  // 音の種類: 'none'(音なし) | 'sine' | 'soft' | 'air' | 'organ' | 'bell'
 const FREQ_MAX       = 800;      // ピッチの上限(Hz)
 const COND_NO        = 2;        // 条件の番号(1〜3。入口ページの進み具合の記録に使う)
-const SURVEY_URL     = 'https://docs.google.com/forms/d/e/1FAIpQLSc4adJLvBiYwc0KGYy0zEFshxy-kigNaSpTi3z7TYpEXPhnRw/viewform?usp=pp_url&entry.378339459=%E6%9D%A1%E4%BB%B61';       // 終了後に開くアンケートのURL(条件ごとに変える)
+const SURVEY_URL     = 'https://docs.google.com/forms/d/e/1FAIpQLSc4adJLvBiYwc0KGYy0zEFshxy-kigNaSpTi3z7TYpEXPhnRw/viewform?usp=pp_url&entry.378339459=%E6%9D%A1%E4%BB%B6%EF%BC%92';       // 終了後に開くアンケートのURL(条件ごとに変える)
 const PITCH_REVERSED = false;    // false: 指を広げる→低い音 / true: 指を広げる→高い音
 const CIRCLE_ON      = true;     // 円: true=表示 / false=なし
 
