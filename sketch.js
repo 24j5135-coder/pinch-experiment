@@ -3,7 +3,6 @@ const SOUND_PARAM    = 'sine';  // 音の種類: 'none'(音なし) | 'sine' | 's
 const FREQ_MAX       = 400;      // ピッチの上限(Hz)
 const PITCH_REVERSED = false;    // false: 指を広げる→低い音 / true: 指を広げる→高い音
 const CIRCLE_ON      = true;     // 円: true=表示 / false=なし
-const PARTICIPANT_ID = 'test';   // 被験者ID(CSVのファイル名と各行に入る)
 
 // ===== 課題の設定 =====
 const TRIAL_COUNT       = 10;   // ピンチ操作の回数
@@ -68,7 +67,9 @@ let strokesThisTrial = 0;     // 今の1回の中で数えたストローク数
 // 記録
 let records = [];
 let t0 = null;
-let exportBtn, startBtn;
+let exportBtn, startBtn, idInput;
+let participantId = '';       // 開始画面で入力された被験者ID(CSVのファイル名と各行に入る)
+let idError = false;
 let dbgSounding = false, dbgFreq = 0;
 
 const CSV_HEADER = [
@@ -86,13 +87,32 @@ function setup() {
   // 開始ボタン(ここで音を許可する。iPhoneは指を離さないと音が出せないため)
   startBtn = createButton('タップして開始');
   startBtn.size(240, 64);
-  startBtn.position(width / 2 - 120, height * 0.45);
+  startBtn.position(width / 2 - 120, height * 0.47);
   startBtn.style('font-size', '20px');
   startBtn.elt.addEventListener('click', () => {
+    // 被験者ID(英数字・ハイフン・アンダースコアのみ使用)
+    const id = idInput.value().trim().replace(/[^A-Za-z0-9_\-]/g, '');
+    if (id === '') {
+      idError = true;
+      return;
+    }
+    participantId = id;
+    idError = false;
     initAudio();
     phase = 'pinch';
     startBtn.hide();
+    idInput.hide();
   });
+
+  // 被験者ID入力欄
+  idInput = createInput('');
+  idInput.size(240);
+  idInput.position(width / 2 - 120 - 8, height * 0.37);
+  idInput.style('font-size', '20px');
+  idInput.style('text-align', 'center');
+  idInput.attribute('placeholder', '被験者ID(例:P01)');
+  idInput.attribute('autocomplete', 'off');
+  idInput.attribute('autocapitalize', 'off');
 
   // CSV保存ボタン(操作が終わるまで隠しておく)
   exportBtn = createButton('データ(CSV)を保存');
@@ -251,7 +271,7 @@ function setPitch(freq) {
 function recordRow(now, d, acc, speedAcc, freq, ratio, sounding) {
   if (t0 === null) t0 = now;
   records.push([
-    PARTICIPANT_ID, SOUND_PARAM, FREQ_MAX, PITCH_REVERSED ? 1 : 0, CIRCLE_ON ? 1 : 0,
+    participantId, SOUND_PARAM, FREQ_MAX, PITCH_REVERSED ? 1 : 0, CIRCLE_ON ? 1 : 0,
     gestureId, Math.round(now - t0), Math.round(now - gestureStart),
     d.toFixed(2), vel.toFixed(2), speed.toFixed(2), acc.toFixed(1), speedAcc.toFixed(1),
     freq.toFixed(1), ratio.toFixed(3), ratio >= HIGH_ZONE_RATIO ? 1 : 0,
@@ -265,7 +285,7 @@ function exportCSV() {
   const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const name = 'pinch_' + PARTICIPANT_ID + '_' + SOUND_PARAM + '_max' + FREQ_MAX +
+  const name = 'pinch_' + participantId + '_' + SOUND_PARAM + '_max' + FREQ_MAX +
                '_' + (PITCH_REVERSED ? 'rev' : 'norm') + '_' + stamp + '.csv';
   const aTag = document.createElement('a');
   aTag.href = url;
@@ -415,6 +435,10 @@ function draw() {
     textAlign(CENTER, TOP);
     fill(TEXT_COLOR);
     text(TEXT_READY, width / 2, height * 0.2);
+    if (idError) {
+      fill(200, 0, 0);
+      text('被験者IDを入力してください。', width / 2, height * 0.6);
+    }
 
   } else if (phase === 'pinch') {
     // 視覚フィードバック：画面中央の水色の円(外枠なし)
@@ -457,13 +481,13 @@ function draw() {
   if (DEBUG) {
     textStyle(NORMAL);
     textSize(14);
-    textAlign(LEFT, BOTTOM);
+    textAlign(LEFT, TOP);
     fill(200, 0, 0);
     text('audio:' + (audioCtx ? audioCtx.state : 'none') + ' started:' + started +
          ' touches:' + touches.length + ' phase:' + phase +
          '\nspeed:' + Math.round(speed) + ' sounding:' + dbgSounding +
          ' freq:' + Math.round(dbgFreq) + ' gain:' + (gainNode ? gainNode.gain.value.toFixed(2) : '-'),
-         10, height - 10);
+         10, height * 0.72);
   }
 }
 
