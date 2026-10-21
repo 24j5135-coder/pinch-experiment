@@ -1,6 +1,7 @@
 // ===== 実験条件(ここだけ書き換えて比較する) =====
 const SOUND_PARAM    = 'sine';  // 音の種類: 'none'(音なし) | 'sine' | 'soft' | 'air' | 'organ' | 'bell'
 const FREQ_MAX       = 400;      // ピッチの上限(Hz)
+const COND_NO        = 1;        // 条件の番号(1〜3。入口ページの進み具合の記録に使う)
 const SURVEY_URL     = 'https://docs.google.com/forms/d/e/1FAIpQLSc4adJLvBiYwc0KGYy0zEFshxy-kigNaSpTi3z7TYpEXPhnRw/viewform?usp=pp_url&entry.378339459=%E6%9D%A1%E4%BB%B61';       // 終了後に開くアンケートのURL(条件ごとに変える)
 const PITCH_REVERSED = false;    // false: 指を広げる→低い音 / true: 指を広げる→高い音
 const CIRCLE_ON      = true;     // 円: true=表示 / false=なし
@@ -16,7 +17,7 @@ const DEBUG             = false; // 診断用の表示(画面下)。本番では
 const TEXT_PINCH = CIRCLE_ON
   ? '円を大きくしたり\n小さくしたりするように、\n2本指で広げて近づける動きを\n指を離さず続けてください。'
   : '2本指を無理のない範囲で\n大きく広げて、近づける動きを\n指を離さず続けてください。';
-const TEXT_READY = '下のボタンを押してから、\n2本指での操作を\n始めてください。';
+const TEXT_READY = '条件' + COND_NO + ' / 3\n\n下のボタンを押してから、\n2本指での操作を\n始めてください。';
 const TEXT_DONE = '操作は以上です。\nお疲れさまでした。\n\n①下のボタンで\nデータ(CSV)を保存\n②そのあと、\nアンケートに回答';
 
 // ===== 以下の条件は固定(必要なときだけ変更) =====
@@ -68,9 +69,8 @@ let strokesThisTrial = 0;     // 今の1回の中で数えたストローク数
 // 記録
 let records = [];
 let t0 = null;
-let exportBtn, startBtn, idInput, surveyBtn;
-let participantId = '';       // 開始画面で入力された被験者ID(CSVのファイル名と各行に入る)
-let idError = false;
+let exportBtn, startBtn, surveyBtn;
+let participantId = '';       // 入口ページで入力された被験者ID(CSVのファイル名と各行に入る)
 let dbgSounding = false, dbgFreq = 0;
 
 const CSV_HEADER = [
@@ -81,6 +81,13 @@ const CSV_HEADER = [
 ];
 
 function setup() {
+  // 入口ページで入力された被験者IDを読む(なければ入口ページに戻る)
+  try { participantId = localStorage.getItem('pinch_id') || ''; } catch (e) {}
+  if (participantId === '') {
+    window.location.href = '../';
+    return;
+  }
+
   createCanvas(windowWidth, windowHeight);
   circleMax = min(width, height) * 0.9;
   circleSize = min(width, height) * 0.3;
@@ -91,29 +98,10 @@ function setup() {
   startBtn.position(width / 2 - 120, height * 0.47);
   startBtn.style('font-size', '20px');
   startBtn.elt.addEventListener('click', () => {
-    // 被験者ID(英数字・ハイフン・アンダースコアのみ使用)
-    const id = idInput.value().trim().replace(/[^A-Za-z0-9_\-]/g, '');
-    if (id === '') {
-      idError = true;
-      return;
-    }
-    participantId = id;
-    idError = false;
     initAudio();
     phase = 'pinch';
     startBtn.hide();
-    idInput.hide();
   });
-
-  // 被験者ID入力欄
-  idInput = createInput('');
-  idInput.size(240);
-  idInput.position(width / 2 - 120 - 8, height * 0.37);
-  idInput.style('font-size', '20px');
-  idInput.style('text-align', 'center');
-  idInput.attribute('placeholder', '被験者ID(例:P01)');
-  idInput.attribute('autocomplete', 'off');
-  idInput.attribute('autocapitalize', 'off');
 
   // CSV保存ボタン(操作が終わるまで隠しておく)
   exportBtn = createButton('データ(CSV)を保存');
@@ -347,6 +335,7 @@ function updateStrokes(d, now) {
     if (trialCount >= TRIAL_COUNT) {
       phase = 'done';
       exportBtn.show();
+      try { localStorage.setItem('pinch_done_' + COND_NO, '1'); } catch (e) {}
       if (SURVEY_URL) surveyBtn.show();
     }
   }
@@ -447,10 +436,6 @@ function draw() {
     textAlign(CENTER, TOP);
     fill(TEXT_COLOR);
     text(TEXT_READY, width / 2, height * 0.2);
-    if (idError) {
-      fill(200, 0, 0);
-      text('被験者IDを入力してください。', width / 2, height * 0.6);
-    }
 
   } else if (phase === 'pinch') {
     // 視覚フィードバック：画面中央の水色の円(外枠なし)

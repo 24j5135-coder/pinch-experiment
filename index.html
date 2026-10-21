@@ -1,13 +1,89 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>ピンチ実験</title>
-    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="style.css">
-  </head>
-  <body>
-    <script src="sketch.js"></script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ピンチ操作の実験</title>
+  <style>
+    body { font-family: sans-serif; color: #333; margin: 0; padding: 24px 20px; max-width: 480px; margin-inline: auto; line-height: 1.7; }
+    h1 { font-size: 20px; }
+    input { font-size: 20px; padding: 10px; width: 100%; box-sizing: border-box; text-align: center; }
+    button { font-size: 20px; padding: 14px 20px; width: 100%; margin-top: 16px; border: 0; border-radius: 10px; background: #2878c8; color: #fff; }
+    .sub { background: none; color: #666; font-size: 14px; text-decoration: underline; margin-top: 32px; }
+    ol { padding-left: 1.4em; }
+    .done { color: #2a8a3a; }
+    .next { font-weight: bold; }
+    .err { color: #c00; min-height: 1.5em; }
+  </style>
+</head>
+<body>
+  <h1>ピンチ操作の実験</h1>
+  <p>タッチスクリーンでの2本指のピンチ操作(広げる・近づける動き)を体験し、そのあとにアンケートに回答していただきます。3つの条件を、順番に体験します。</p>
+
+  <!-- ID未入力のとき -->
+  <div id="start">
+    <p>実験者から伝えられた被験者IDを入力してください。</p>
+    <input id="idInput" placeholder="被験者ID(例:P01)" autocomplete="off" autocapitalize="off">
+    <div class="err" id="err"></div>
+    <button id="startBtn">はじめる</button>
+  </div>
+
+  <!-- ID入力済みのとき -->
+  <div id="progress" style="display:none">
+    <p>被験者ID:<b id="idLabel"></b></p>
+    <ol id="steps"></ol>
+    <button id="nextBtn"></button>
+    <button class="sub" id="resetBtn">別の被験者として始める(記録を消す)</button>
+  </div>
+
+  <script>
+    var N = 3;
+    function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+    function del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+    function render() {
+      var id = get('pinch_id');
+      document.getElementById('start').style.display = id ? 'none' : '';
+      document.getElementById('progress').style.display = id ? '' : 'none';
+      if (!id) return;
+      document.getElementById('idLabel').textContent = id;
+
+      var next = 0, html = '';
+      for (var i = 1; i <= N; i++) {
+        var done = get('pinch_done_' + i) === '1';
+        if (!done && next === 0) next = i;
+        var cls = done ? 'done' : (next === i ? 'next' : '');
+        var mark = done ? '(完了)' : (next === i ? '(次はこちら)' : '');
+        html += '<li class="' + cls + '">条件' + i + ' ' + mark + '</li>';
+      }
+      document.getElementById('steps').innerHTML = html;
+
+      var btn = document.getElementById('nextBtn');
+      if (next === 0) {
+        btn.style.display = 'none';
+        document.getElementById('steps').insertAdjacentHTML('afterend', '<p><b>すべて終了しました。ご協力ありがとうございました。</b></p>');
+      } else {
+        btn.style.display = '';
+        btn.textContent = (next === 1 ? '条件1を始める' : '条件' + next + 'へ進む');
+        btn.onclick = function () { window.location.href = 'exp1_cond' + next + '/'; };
+      }
+    }
+
+    document.getElementById('startBtn').onclick = function () {
+      var id = document.getElementById('idInput').value.trim().replace(/[^A-Za-z0-9_\-]/g, '');
+      if (id === '') { document.getElementById('err').textContent = '被験者IDを入力してください。'; return; }
+      set('pinch_id', id);
+      for (var i = 1; i <= N; i++) del('pinch_done_' + i);
+      render();
+    };
+    document.getElementById('resetBtn').onclick = function () {
+      if (!confirm('記録を消して、別の被験者として始めます。よろしいですか?')) return;
+      del('pinch_id');
+      for (var i = 1; i <= N; i++) del('pinch_done_' + i);
+      location.reload();
+    };
+    render();
+  </script>
+</body>
 </html>
